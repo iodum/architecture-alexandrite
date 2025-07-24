@@ -1,0 +1,40 @@
+@startuml
+title Получение списка заказов с кешированием
+
+actor Operator as op
+participant "UI" as front
+participant "API" as api
+participant "Cache" as cache
+participant "Database" as db
+
+op -> front: Открывает страницу
+activate front
+
+front -> api: Запрашивает данные
+activate api
+
+api -> cache: Запрос данных (ключ: "orders:dashboard")
+activate cache
+
+alt Данные есть в кеше
+    cache --> api: Возвращает кешированные данные
+    deactivate cache
+else Кеш пуст
+    cache --> api: "null"
+    deactivate cache
+
+    api -> db: SQL: SELECT * FROM orders
+    activate db
+    db --> api: Результат запроса
+    deactivate db
+
+    api -> cache: SET orders:dashboard (TTL=5m)
+    activate cache
+    cache --> api: OK
+    deactivate cache
+end
+
+api --> front: Возвращает список заказов
+front --> op: Отображает список заказов
+deactivate front
+@enduml
